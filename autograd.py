@@ -169,6 +169,22 @@ class Grad():
         return math.e ** x
 
     @staticmethod
+    def _log(x: Grad, base: float = math.e) -> Grad:
+        out = Grad(
+            val=math.log(x.val, base),
+            required_grad=x.requires_grad,
+            children=(x,)
+        )
+
+        def out_backward():
+            if x.requires_grad:
+                x.grad += (1 / (x.val * math.log(base))) * out.grad
+
+        out._backward = out_backward
+
+        return out
+
+    @staticmethod
     @overload
     def log(x: Grad, base: float = math.e) -> Grad: ...
 
@@ -179,21 +195,8 @@ class Grad():
     @staticmethod
     def log(x: Grad | np.ndarray, base: float = math.e) -> Grad | np.ndarray:
         if isinstance(x, Grad):
-            out = Grad(
-                val=math.log(x.val, base),
-                required_grad=x.requires_grad,
-                children=(x,)
-            )
-
-            def out_backward():
-                if x.requires_grad:
-                    x.grad += (1 / (x.val * math.log(base))) * out.grad
-
-            out._backward = out_backward
-
-            return out
-
-        return np.vectorize(Grad.log)(x)
+            return Grad._log(x, base)
+        return np.vectorize(Grad._log)(x)
 
     @staticmethod
     @overload
